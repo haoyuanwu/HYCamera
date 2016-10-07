@@ -213,33 +213,64 @@
     [stillImageConnection setVideoOrientation:avcaptureOrientation];
     [stillImageConnection setVideoScaleAndCropFactor:1];
     
-    [self.stillImageOutput captureStillImageAsynchronouslyFromConnection:stillImageConnection completionHandler:^(CMSampleBufferRef imageDataSampleBuffer, NSError *error) {
-        
-        NSData *jpegData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageDataSampleBuffer];
-        UIImage *image = [UIImage imageWithData:jpegData];
-        if (self.isUsingFrontFacingCamera) {
-            //操作图片方向
-            cameraView.imageV.image = [self flipHorizontal:image];
-        }else{
-            cameraView.imageV.image = image;
-        }
-        
-        cameraView.hidden = NO;
-        CFDictionaryRef attachments = CMCopyDictionaryOfAttachments(kCFAllocatorDefault,
-                                                                    imageDataSampleBuffer,
-                                                                    kCMAttachmentMode_ShouldPropagate);
-        
-        ALAuthorizationStatus author = [ALAssetsLibrary authorizationStatus];
-        if (author == ALAuthorizationStatusRestricted || author == ALAuthorizationStatusDenied){
-            //无权限
-            return ;
-        }
-        ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
-        [library writeImageDataToSavedPhotosAlbum:jpegData metadata:(__bridge id)attachments completionBlock:^(NSURL *assetURL, NSError *error) {
+    if (stillImageConnection) {
+        [self.stillImageOutput captureStillImageAsynchronouslyFromConnection:stillImageConnection completionHandler:^(CMSampleBufferRef imageDataSampleBuffer, NSError *error) {
             
+            if (imageDataSampleBuffer) {
+                NSData *jpegData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageDataSampleBuffer];
+                UIImage *image = [UIImage imageWithData:jpegData];
+                
+                CFDictionaryRef attachments = CMCopyDictionaryOfAttachments(kCFAllocatorDefault,
+                                                                            imageDataSampleBuffer,
+                                                                            kCMAttachmentMode_ShouldPropagate);
+                
+                ALAuthorizationStatus author = [ALAssetsLibrary authorizationStatus];
+                if (author == ALAuthorizationStatusRestricted || author == ALAuthorizationStatusDenied){
+                    if ([[UIDevice currentDevice].systemVersion floatValue] > 8.0) {
+                        [self showAlertViewTitle:@"警告" message:@"您没有打开相册权限，无法保留事故证据，确定打开吗？" canceName:@"取消" otherName:@"确定" alertAction:^(UIAlertAction *action) {
+                            if ([action.title isEqualToString:@"确定"]) {
+                                NSURL*url = [NSURL URLWithString:UIApplicationOpenSettingsURLString];
+                                [[UIApplication sharedApplication] openURL:url];
+                            }
+                        }];
+                    }else{
+                        [self showAlertViewTitle:@"警告" message:@"请在iPhonr的“设置-隐私-相机”中允许访问相册" canceName:@"确定" otherName:nil alertAction:nil];
+                    }
+                    
+                    return ;
+                }
+                
+                if (self.delegate && [self.delegate respondsToSelector:@selector(HYCameraViewControllerChooseImage:chooseImage:)]) {
+                    [self.delegate HYCameraViewControllerChooseImage:self chooseImage:image];
+                    
+                }
+                
+                [self.navigationController popViewControllerAnimated:YES];
+                ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
+                [library writeImageDataToSavedPhotosAlbum:jpegData metadata:(__bridge id)attachments completionBlock:^(NSURL *assetURL, NSError *error) {
+                    
+                }];
+            }else{
+                [self showAlertViewTitle:@"警告" message:@"没有生成图像，请正确使用相机！" canceName:nil otherName:nil alertAction:nil];
+            }
         }];
         
-    }];
+    }else{
+        if ([[UIDevice currentDevice].systemVersion floatValue] > 8.0) {
+            [self showAlertViewTitle:@"警告" message:@"您没有打开相机权限，确定打开吗？" canceName:@"取消" otherName:@"确定" alertAction:^(UIAlertAction *action) {
+                if ([action.title isEqualToString:@"确定"]) {
+                    NSURL*url = [NSURL URLWithString:UIApplicationOpenSettingsURLString];
+                    [[UIApplication sharedApplication] openURL:url];
+                    [self.navigationController popViewControllerAnimated:YES];
+                }else{
+                    [self.navigationController popViewControllerAnimated:YES];
+                }
+            }];
+        }else{
+            [self showAlertViewTitle:@"警告" message:@"请在iPhonr的“设置-隐私-相机”中允许访问相机" canceName:@"确定" otherName:nil alertAction:nil];
+        }
+    }
+
 }
 
 - (void)initAVCaptureSession{
@@ -332,6 +363,29 @@
     }
     
     return image;
+}
+
+- (void)showAlertViewTitle:(NSString *)title message:(NSString *)message canceName:(NSString *)canceName otherName:(NSString *)otherName alertAction:(alertAction)alertAction{
+    UIAlertController *alertView = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:(UIAlertControllerStyleAlert)];
+    if (canceName) {
+        UIAlertAction *canceAction = [UIAlertAction actionWithTitle:canceName style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            alertAction(action);
+        }];
+        [alertView addAction:canceAction];
+    }
+    if (otherName) {
+        UIAlertAction *action = [UIAlertAction actionWithTitle:otherName style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            alertAction(action);
+        }];
+        [alertView addAction:action];
+    }
+    if (alertView.actions.count == 0) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [alertView dismissViewControllerAnimated:YES completion:nil];
+        });
+    }
+    
+    [self presentViewController:alertView animated:YES completion:nil];
 }
 
 
