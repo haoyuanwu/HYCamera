@@ -88,9 +88,17 @@
  */
 @property (nonatomic, strong) AVCaptureDeviceInput* videoInput;
 /**
+ 闪光灯
+ */
+@property (nonatomic, strong) AVCaptureDevice *device;
+/**
  *  照片输出流
  */
 @property (nonatomic, strong) AVCaptureStillImageOutput* stillImageOutput;
+/**
+ 照片输出流
+ */
+@property (nonatomic, strong) AVCapturePhotoOutput* stillPhotoOutput;
 /**
  *  预览图层
  */
@@ -110,6 +118,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
     
     self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"返回" style:UIBarButtonItemStyleDone target:self action:@selector(goBack)];
     
@@ -159,7 +168,13 @@
     }
     self.isUsingFrontFacingCamera = !self.isUsingFrontFacingCamera;
     
-    for (AVCaptureDevice *d in [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo]) {
+    
+    NSArray *typeVideoArr;
+    
+    typeVideoArr = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+
+    
+    for (AVCaptureDevice *d in typeVideoArr) {
         if ([d position] == desiredPosition) {
             [self.previewLayer.session beginConfiguration];
             AVCaptureDeviceInput *input = [AVCaptureDeviceInput deviceInputWithDevice:d error:nil];
@@ -230,7 +245,13 @@
                         [self showAlertViewTitle:@"警告" message:@"您没有打开相册权限，无法保留事故证据，确定打开吗？" canceName:@"取消" otherName:@"确定" alertAction:^(UIAlertAction *action) {
                             if ([action.title isEqualToString:@"确定"]) {
                                 NSURL*url = [NSURL URLWithString:UIApplicationOpenSettingsURLString];
-                                [[UIApplication sharedApplication] openURL:url];
+                                if (iOS10) {
+                                    [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                                }else{
+                                    [[UIApplication sharedApplication] openURL:url ];
+                                }
+                                
+                                
                             }
                         }];
                     }else{
@@ -279,14 +300,16 @@
     
     NSError *error;
     
-    AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+    self.device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
     //更改这个设置的时候必须先锁定设备，修改完后再解锁，否则崩溃
-    [device lockForConfiguration:nil];
+    [self.device lockForConfiguration:nil];
     //设置闪光灯为自动
-    [device setFlashMode:AVCaptureFlashModeAuto];
-    [device unlockForConfiguration];
+    if (self.device.flashAvailable) {//先判断闪光灯是不是可用
+        [self.device setFlashMode:AVCaptureFlashModeAuto];
+    }
+    [self.device unlockForConfiguration];
     
-    self.videoInput = [[AVCaptureDeviceInput alloc] initWithDevice:device error:&error];
+    self.videoInput = [[AVCaptureDeviceInput alloc] initWithDevice:self.device error:&error];
     if (error) {
         NSLog(@"%@",error);
     }
@@ -306,8 +329,8 @@
     self.previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:self.session];
     [self.previewLayer setVideoGravity:AVLayerVideoGravityResizeAspectFill];
     self.previewLayer.frame = self.view.bounds;
-    self.bgView.layer.masksToBounds = YES;
-    [self.bgView.layer addSublayer:self.previewLayer];
+    self.view.layer.masksToBounds = YES;
+    [self.view.layer addSublayer:self.previewLayer];
 }
 
 

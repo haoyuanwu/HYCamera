@@ -13,6 +13,8 @@
 typedef void (^alertAction)(UIAlertAction *action);
 #define kMainScreenWidth [UIScreen mainScreen].bounds.size.width
 #define kMainScreenHeight [UIScreen mainScreen].bounds.size.height
+#define iOS10 [[UIDevice currentDevice].systemVersion floatValue] >= 10.0
+#define iOS9 [[UIDevice currentDevice].systemVersion floatValue] >= 9.0
 
 @protocol HYCameraViewControllerDelegate <NSObject>
 
