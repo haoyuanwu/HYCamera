@@ -134,6 +134,15 @@
     [cameraBtn addTarget:self action:@selector(shutter) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:cameraBtn];
     
+    //闪光按钮
+    UIButton *lampBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    lampBtn.frame = CGRectMake(self.view.frame.size.width - 60, self.view.frame.size.height - 80, 60, 60);
+//    lampBtn.transform = CGAffineTransformMakeRotation(M_PI_2);
+    [lampBtn setImage:[UIImage imageNamed:@"kc_gbshanguang"] forState:UIControlStateNormal];
+    [lampBtn setImage:[UIImage imageNamed:@"kc_shanguang"] forState:UIControlStateSelected];
+    [lampBtn addTarget:self action:@selector(flasAction:) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:lampBtn];
+    
     UISwipeGestureRecognizer *swipe = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(changeCamera)];
     swipe.direction = UISwipeGestureRecognizerDirectionRight | UISwipeGestureRecognizerDirectionLeft;
     [self.view addGestureRecognizer:swipe];
@@ -167,7 +176,6 @@
         desiredPosition = AVCaptureDevicePositionFront;
     }
     self.isUsingFrontFacingCamera = !self.isUsingFrontFacingCamera;
-    
     
     NSArray *typeVideoArr;
     
@@ -209,6 +217,30 @@
     }
 }
 
+//闪光灯按钮的操作
+- (void)flasAction:(UIButton *)sender
+{
+    sender.selected = !sender.isSelected;
+    
+    if ([self.device hasTorch] && [self.device hasFlash])
+    {
+        [self.device lockForConfiguration:nil];
+        //闪光灯开
+        if (sender.isSelected)
+        {
+            [self.device setFlashMode:AVCaptureFlashModeOn];
+        }
+        //闪光灯关
+        else
+        {
+            [self.device setFlashMode:AVCaptureFlashModeOff];
+        }
+        //闪光灯自动，这里就不写了，可以自己尝试
+        //[device setFlashMode:AVCaptureFlashModeAuto];
+        [self.device unlockForConfiguration];
+    }
+}
+
 
 -(AVCaptureVideoOrientation)avOrientationForDeviceOrientation:(UIDeviceOrientation)deviceOrientation
 {
@@ -235,10 +267,6 @@
                 NSData *jpegData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageDataSampleBuffer];
                 UIImage *image = [UIImage imageWithData:jpegData];
                 
-                CFDictionaryRef attachments = CMCopyDictionaryOfAttachments(kCFAllocatorDefault,
-                                                                            imageDataSampleBuffer,
-                                                                            kCMAttachmentMode_ShouldPropagate);
-                
                 ALAuthorizationStatus author = [ALAssetsLibrary authorizationStatus];
                 if (author == ALAuthorizationStatusRestricted || author == ALAuthorizationStatusDenied){
                     if ([[UIDevice currentDevice].systemVersion floatValue] > 8.0) {
@@ -261,16 +289,28 @@
                     return ;
                 }
                 
+                if (self.isUsingFrontFacingCamera) {
+                    //操作图片方向
+                    cameraView.imageV.image = [self flipHorizontal:image];
+                }else{
+                    cameraView.imageV.image = image;
+                }
+                cameraView.hidden = NO;
                 if (self.delegate && [self.delegate respondsToSelector:@selector(HYCameraViewControllerChooseImage:chooseImage:)]) {
                     [self.delegate HYCameraViewControllerChooseImage:self chooseImage:image];
-                    
                 }
                 
-                [self.navigationController popViewControllerAnimated:YES];
-                ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
-                [library writeImageDataToSavedPhotosAlbum:jpegData metadata:(__bridge id)attachments completionBlock:^(NSURL *assetURL, NSError *error) {
-                    
-                }];
+//                [self.navigationController popViewControllerAnimated:YES];
+//                [self dismissViewControllerAnimated:YES completion:nil];
+                
+                //存到相册
+//                CFDictionaryRef attachments = CMCopyDictionaryOfAttachments(kCFAllocatorDefault,
+//                                                                            imageDataSampleBuffer,
+//                                                                            kCMAttachmentMode_ShouldPropagate);
+//                ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
+//                [library writeImageDataToSavedPhotosAlbum:jpegData metadata:(__bridge id)attachments completionBlock:^(NSURL *assetURL, NSError *error) {
+//                    
+//                }];
             }else{
                 [self showAlertViewTitle:@"警告" message:@"没有生成图像，请正确使用相机！" canceName:nil otherName:nil alertAction:nil];
             }
@@ -282,9 +322,6 @@
                 if ([action.title isEqualToString:@"确定"]) {
                     NSURL*url = [NSURL URLWithString:UIApplicationOpenSettingsURLString];
                     [[UIApplication sharedApplication] openURL:url];
-                    [self.navigationController popViewControllerAnimated:YES];
-                }else{
-                    [self.navigationController popViewControllerAnimated:YES];
                 }
             }];
         }else{
@@ -410,6 +447,7 @@
     
     [self presentViewController:alertView animated:YES completion:nil];
 }
+
 
 
 - (void)didReceiveMemoryWarning {

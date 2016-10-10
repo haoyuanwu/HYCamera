@@ -9,7 +9,7 @@
 #import "ViewController.h"
 #import "HYCameraViewController.h"
 
-@interface ViewController ()
+@interface ViewController ()<HYCameraViewControllerDelegate>
 
 @end
 
@@ -25,8 +25,13 @@
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
     HYCameraViewController *camera = [[HYCameraViewController alloc] init];
+    camera.delegate = self;
     UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:camera];
     [self presentViewController:nav animated:YES completion:nil];
+}
+
+- (void)HYCameraViewControllerChooseImage:(UIViewController *)cameraViewController chooseImage:(UIImage *)image{
+    
 }
 
 - (void)didReceiveMemoryWarning {
