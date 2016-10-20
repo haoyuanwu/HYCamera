@@ -7,9 +7,9 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "Module.h"
 
 @interface ViewController : UIViewController
-
 
 @end
 

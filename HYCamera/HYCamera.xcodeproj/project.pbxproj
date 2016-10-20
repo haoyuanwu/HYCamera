@@ -18,6 +18,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		509AC9711DAC8BBD003B4221 /* Module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Module.h; sourceTree = "<group>"; };
 		50A35D841D9BB26100D1E74D /* HYCamera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HYCamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		50A35D881D9BB26100D1E74D /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		50A35D8A1D9BB26100D1E74D /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -75,6 +76,7 @@
 				50A35D9B1D9BB26100D1E74D /* Info.plist */,
 				50A35D931D9BB26100D1E74D /* HYCamera.xcdatamodeld */,
 				50A35D871D9BB26100D1E74D /* Supporting Files */,
+				509AC9711DAC8BBD003B4221 /* Module.h */,
 			);
 			path = HYCamera;
 			sourceTree = "<group>";
